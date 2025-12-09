@@ -14,7 +14,7 @@ interface HeaderProps {
 
 export function Header({ user, onMenuClick }: HeaderProps) {
 	const handleSignOut = () => {
-		signOut({ callbackUrl: '/login' })
+		signOut({ callbackUrl: 'https://dashboard-omega-sandy-89.vercel.app/' })
 	}
 
 	return (
