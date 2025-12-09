@@ -38,6 +38,7 @@ CRON_SECRET="your-cron-secret"
 ```
 
 Це автоматично:
+
 - ✅ Згенерує Prisma Client
 - ✅ Створить таблиці в БД
 - ✅ Додасть demo дані
@@ -51,6 +52,7 @@ npm run dev
 Відкрийте http://localhost:3000 🎉
 
 **Demo credentials:**
+
 - Email: `demo@example.com`
 - Password: `password123`
 

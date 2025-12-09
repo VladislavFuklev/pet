@@ -73,6 +73,7 @@ npm run db:seed
 ```
 
 Це створить:
+
 - Demo користувача: `demo@example.com` / `password123`
 - Всі категорії транзакцій
 - Налаштування нотифікацій
@@ -84,6 +85,7 @@ npm run dev
 ```
 
 Відкрийте http://localhost:3000 та перевірте:
+
 - [ ] Можете зареєструватися
 - [ ] Можете увійти
 - [ ] Dashboard відображається
@@ -109,6 +111,7 @@ vercel --prod
 ### Варіант Б: Через GitHub
 
 1. Запушіть код на GitHub:
+
 ```bash
 git init
 git add .
@@ -138,6 +141,7 @@ CRON_SECRET = your-cron-secret
 ```
 
 ⚠️ **ВАЖЛИВО для NEXTAUTH_URL**:
+
 - Production: `https://your-app-name.vercel.app`
 - Preview: `https://your-app-name-git-branch.vercel.app`
 - Development: `http://localhost:3000`
