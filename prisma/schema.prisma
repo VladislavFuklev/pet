@@ -1,0 +1,215 @@
+// Prisma schema for Personal Finance Tracker
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ USER & AUTH ============
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials auth (hashed)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  categories            Category[]
+  transactions          Transaction[]
+  budgets               Budget[]
+  recurringTransactions RecurringTransaction[]
+  notificationSettings  NotificationSettings?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============ CORE ENTITIES ============
+
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      TransactionType // INCOME or EXPENSE
+  color     String   @default("#3b82f6") // Hex color for UI
+  icon      String?  // Icon name from lucide-react
+  parentId  String?  // For hierarchical categories (subcategories)
+  isSystem  Boolean  @default(false) // System categories can't be deleted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Category?     @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     Category[]    @relation("CategoryHierarchy")
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([userId, type])
+  @@map("categories")
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  categoryId  String
+  amount      Decimal         @db.Decimal(12, 2) // Important: Decimal for financial precision
+  date        DateTime        @default(now())
+  description String
+  type        TransactionType
+  isRecurring Boolean         @default(false)
+  recurringId String?
+  tags        String[]        @default([])
+  metadata    Json?           // For CSV import data, merchant info, etc.
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?       // Soft delete for audit trail
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category             Category              @relation(fields: [categoryId], references: [id])
+  recurringTransaction RecurringTransaction? @relation(fields: [recurringId], references: [id])
+
+  @@index([userId, date(sort: Desc)])
+  @@index([userId, categoryId])
+  @@index([userId, type, date])
+  @@map("transactions")
+}
+
+model Budget {
+  id         String       @id @default(cuid())
+  userId     String
+  categoryId String
+  amount     Decimal      @db.Decimal(12, 2)
+  spent      Decimal      @default(0) @db.Decimal(12, 2) // Denormalized for performance
+  period     BudgetPeriod @default(MONTHLY)
+  startDate  DateTime
+  endDate    DateTime
+  alertAt50  Boolean      @default(true)
+  alertAt80  Boolean      @default(true)
+  alertAt100 Boolean      @default(true)
+  rollover   Boolean      @default(false) // Rollover unused budget
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@unique([userId, categoryId, startDate])
+  @@index([userId, startDate, endDate])
+  @@map("budgets")
+}
+
+model RecurringTransaction {
+  id           String                @id @default(cuid())
+  userId       String
+  categoryId   String
+  amount       Decimal               @db.Decimal(12, 2)
+  description  String
+  type         TransactionType
+  frequency    RecurringFrequency
+  interval     Int                   @default(1) // Every N days/weeks/months
+  dayOfMonth   Int?                  // For monthly: which day (1-31)
+  dayOfWeek    Int?                  // For weekly: which day (0=Sunday, 6=Saturday)
+  startDate    DateTime
+  endDate      DateTime?             // Optional end date
+  nextDate     DateTime              // Next scheduled execution
+  lastGenerated DateTime?            // Last time transaction was generated
+  isActive     Boolean               @default(true)
+  metadata     Json?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId, nextDate])
+  @@index([isActive, nextDate])
+  @@map("recurring_transactions")
+}
+
+model NotificationSettings {
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  email           Boolean @default(true)
+  push            Boolean @default(false)
+  budgetAlerts    Boolean @default(true)
+  recurringRemind Boolean @default(true)
+  weeklyDigest    Boolean @default(true)
+  monthlyReport   Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+// ============ ENUMS ============
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum BudgetPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum RecurringFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
