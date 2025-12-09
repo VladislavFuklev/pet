@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getCategories, getTransactions } from '@/lib/actions/transactions'
 import { TransactionType } from '@prisma/client'
-import { Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 interface Transaction {
@@ -42,6 +42,7 @@ export default function TransactionsPageContent() {
 	}>({})
 	const [isLoading, setIsLoading] = useState(true)
 	const [refreshKey, setRefreshKey] = useState(0)
+	const [showFilters, setShowFilters] = useState(false)
 
 	useEffect(() => {
 		const loadData = async () => {
@@ -145,19 +146,40 @@ export default function TransactionsPageContent() {
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Filters</CardTitle>
+					<div className='flex items-center justify-between'>
+						<CardTitle>Filters</CardTitle>
+						<Button
+							variant='ghost'
+							size='sm'
+							onClick={() => setShowFilters(!showFilters)}
+						>
+							{showFilters ? (
+								<>
+									<ChevronUp className='h-4 w-4 mr-2' />
+									Hide
+								</>
+							) : (
+								<>
+									<ChevronDown className='h-4 w-4 mr-2' />
+									Show
+								</>
+							)}
+						</Button>
+					</div>
 				</CardHeader>
-				<CardContent>
-					<TransactionFilters
-						type={filters.type}
-						categoryId={filters.categoryId}
-						startDate={filters.startDate}
-						endDate={filters.endDate}
-						search={filters.search}
-						categories={categories}
-						onChange={setFilters}
-					/>
-				</CardContent>
+				{showFilters && (
+					<CardContent>
+						<TransactionFilters
+							type={filters.type}
+							categoryId={filters.categoryId}
+							startDate={filters.startDate}
+							endDate={filters.endDate}
+							search={filters.search}
+							categories={categories}
+							onChange={setFilters}
+						/>
+					</CardContent>
+				)}
 			</Card>
 
 			<Card>
