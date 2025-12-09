@@ -1,4 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/db'
+import { formatCurrency } from '@/lib/utils'
+import { TransactionType } from '@prisma/client'
+import { endOfMonth, startOfMonth } from 'date-fns'
 import {
 	ArrowDownIcon,
 	ArrowUpIcon,
@@ -6,8 +11,47 @@ import {
 	TrendingUp,
 	Wallet,
 } from 'lucide-react'
+import { redirect } from 'next/navigation'
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+	const session = await auth()
+	if (!session?.user?.id) {
+		redirect('/login')
+	}
+
+	// Get current month date range
+	const now = new Date()
+	const monthStart = startOfMonth(now)
+	const monthEnd = endOfMonth(now)
+
+	// Fetch transactions for current month
+	const transactions = await db.transaction.findMany({
+		where: {
+			userId: session.user.id,
+			deletedAt: null,
+			date: {
+				gte: monthStart,
+				lte: monthEnd,
+			},
+		},
+		select: {
+			amount: true,
+			type: true,
+		},
+	})
+
+	// Calculate totals
+	const income = transactions
+		.filter(t => t.type === TransactionType.INCOME)
+		.reduce((sum, t) => sum + Number(t.amount), 0)
+
+	const expenses = transactions
+		.filter(t => t.type === TransactionType.EXPENSE)
+		.reduce((sum, t) => sum + Number(t.amount), 0)
+
+	const balance = income - expenses
+	const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0
+
 	return (
 		<div className='space-y-8'>
 			<div>
@@ -25,10 +69,9 @@ export default function DashboardPage() {
 						<Wallet className='h-4 w-4 text-gray-500' />
 					</CardHeader>
 					<CardContent>
-						<div className='text-2xl font-bold'>$5,420.00</div>
+						<div className='text-2xl font-bold'>{formatCurrency(balance)}</div>
 						<p className='text-xs text-gray-500 dark:text-gray-400'>
-							<span className='text-green-600 dark:text-green-400'>+12.5%</span>{' '}
-							from last month
+							This month
 						</p>
 					</CardContent>
 				</Card>
@@ -39,7 +82,9 @@ export default function DashboardPage() {
 						<ArrowUpIcon className='h-4 w-4 text-green-600' />
 					</CardHeader>
 					<CardContent>
-						<div className='text-2xl font-bold text-green-600'>$8,240.00</div>
+						<div className='text-2xl font-bold text-green-600'>
+							{formatCurrency(income)}
+						</div>
 						<p className='text-xs text-gray-500 dark:text-gray-400'>
 							This month
 						</p>
@@ -52,7 +97,9 @@ export default function DashboardPage() {
 						<ArrowDownIcon className='h-4 w-4 text-red-600' />
 					</CardHeader>
 					<CardContent>
-						<div className='text-2xl font-bold text-red-600'>$2,820.00</div>
+						<div className='text-2xl font-bold text-red-600'>
+							{formatCurrency(expenses)}
+						</div>
 						<p className='text-xs text-gray-500 dark:text-gray-400'>
 							This month
 						</p>
@@ -65,7 +112,9 @@ export default function DashboardPage() {
 						<TrendingUp className='h-4 w-4 text-blue-600' />
 					</CardHeader>
 					<CardContent>
-						<div className='text-2xl font-bold text-blue-600'>65.8%</div>
+						<div className='text-2xl font-bold text-blue-600'>
+							{savingsRate.toFixed(1)}%
+						</div>
 						<p className='text-xs text-gray-500 dark:text-gray-400'>
 							Of total income
 						</p>
@@ -73,36 +122,23 @@ export default function DashboardPage() {
 				</Card>
 			</div>
 
-			{/* Recent Transactions */}
-			<Card>
-				<CardHeader>
-					<CardTitle>Recent Transactions</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<div className='space-y-4'>
-						<div className='flex items-center justify-between'>
-							<div className='flex items-center gap-4'>
-								<div className='flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900'>
-									<DollarSign className='h-5 w-5 text-blue-600' />
-								</div>
-								<div>
-									<p className='font-medium'>Salary</p>
-									<p className='text-sm text-gray-500'>Dec 1, 2025</p>
-								</div>
-							</div>
-							<div className='text-right'>
-								<p className='font-medium text-green-600'>+$5,000.00</p>
-								<p className='text-sm text-gray-500'>Income</p>
-							</div>
-						</div>
-						<div className='text-center py-8 text-gray-500'>
-							<p>
-								No transactions yet. Start by adding your first transaction!
+			{/* Empty State */}
+			{transactions.length === 0 && (
+				<Card>
+					<CardContent className='pt-6'>
+						<div className='text-center py-12'>
+							<DollarSign className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+							<h3 className='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
+								No transactions yet
+							</h3>
+							<p className='text-sm text-gray-500 dark:text-gray-400 mb-4'>
+								Start by adding your first transaction to see your financial
+								overview
 							</p>
 						</div>
-					</div>
-				</CardContent>
-			</Card>
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	)
 }

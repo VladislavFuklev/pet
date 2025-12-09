@@ -15,18 +15,24 @@ if [ ! -f .env.local ]; then
     exit 1
 fi
 
+# Copy .env.local to .env for Prisma CLI (it doesn't read .env.local)
+echo -e "${GREEN}Step 0: Preparing environment files...${NC}"
+cp .env.local .env
+echo -e "${GREEN}✅ Copied .env.local to .env${NC}"
+
 # Check if DATABASE_URL is set
-if ! grep -q "POSTGRES" .env.local; then
-    echo -e "${YELLOW}⚠️  Warning: DATABASE_URL might not be configured with Vercel Postgres${NC}"
-    echo -e "${YELLOW}Make sure you're using POSTGRES_PRISMA_URL from Vercel${NC}\n"
+if ! grep -q "DATABASE_URL" .env; then
+    echo -e "${RED}❌ DATABASE_URL not found in .env.local${NC}"
+    echo -e "${YELLOW}Please add your Vercel Postgres URL to .env.local${NC}"
+    exit 1
 fi
 
-echo -e "${GREEN}Step 1: Generating Prisma Client...${NC}"
+echo -e "\n${GREEN}Step 1: Generating Prisma Client...${NC}"
 npx prisma generate
 
-echo -e "\n${GREEN}Step 2: Pushing schema to database...${NC}"
+echo -e "\n${GREEN}Step 2: Creating database migration...${NC}"
 echo -e "${YELLOW}This will create all tables in your Vercel Postgres database${NC}"
-npx prisma db push
+npx prisma migrate dev --name init
 
 if [ $? -eq 0 ]; then
     echo -e "\n${GREEN}✅ Database schema created successfully!${NC}"
