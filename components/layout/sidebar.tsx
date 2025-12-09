@@ -1,26 +1,13 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import {
-	Calendar,
-	LayoutDashboard,
-	PieChart,
-	Receipt,
-	Settings,
-	Upload,
-	Wallet,
-	X,
-} from 'lucide-react'
+import { LayoutDashboard, Receipt, Settings, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
 	{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 	{ name: 'Transactions', href: '/transactions', icon: Receipt },
-	{ name: 'Budgets', href: '/budgets', icon: Wallet },
-	{ name: 'Reports', href: '/reports', icon: PieChart },
-	{ name: 'Recurring', href: '/recurring', icon: Calendar },
-	{ name: 'Import', href: '/import', icon: Upload },
 	{ name: 'Settings', href: '/settings', icon: Settings },
 ]
 
