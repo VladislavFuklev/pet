@@ -1,14 +1,13 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Receipt, Settings, X } from 'lucide-react'
+import { LayoutDashboard, Receipt, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navigation = [
 	{ name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
 	{ name: 'Transactions', href: '/transactions', icon: Receipt },
-	{ name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 interface SidebarProps {
